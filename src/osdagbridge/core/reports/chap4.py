@@ -6,6 +6,7 @@ from osdagbridge.core.utils.common import (
     KEY_SD_DEFL_TOTAL,
 )
 from osdagbridge.core.reports.report_utils import _tex, _fig_embed
+from osdagbridge.core.reports.styles import make_longtable_header, make_longtable_footer
 
 if TYPE_CHECKING:
     from .report_generator import ReportDataBridge
@@ -75,6 +76,31 @@ def ch4_analysis(asum, fig_paths, bridge: "ReportDataBridge", span_m: float):
     _allow_total_str = f"L/600 = {_allow_total_mm:.1f} mm"
     _live_status     = ("PASS" if _live_mm  <= _allow_live_mm  else r"\textcolor{red}{FAIL}") if _live_mm  is not None else "---"
     _total_status    = ("PASS" if _total_mm <= _allow_total_mm else r"\textcolor{red}{FAIL}") if _total_mm is not None else "---"
+
+    t42_rows = []
+    if rxn_summary:
+        for lc, r_data in rxn_summary.items():
+            r_data = r_data or {}
+            t42_rows.append(
+                _tex(lc) + r" & "
+                + _fmt(r_data.get('left_kN')) + r" & "
+                + _fmt(r_data.get('right_kN')) + r" \\[6pt]"
+            )
+    if not t42_rows:
+        t42_rows.append(r"--- & --- & --- \\[6pt]")
+    t42_content = "\n\\hline\n".join(t42_rows)
+
+    t42_hdr = make_longtable_header("Reactions at Supports",
+                                     "|>{\\centering\\arraybackslash}p{5.2cm}|>{\\centering\\arraybackslash}p{5.2cm}|>{\\centering\\arraybackslash}p{5.2cm}|",
+                                     r"\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)}",
+                                     label="tab:reactions-at-supports", num_cols=3)
+
+    t43_hdr = make_longtable_header(r"Deflection Summary (Live Load \& Total Load)",
+                                     "|L{7cm}|p{8.5cm}|",
+                                     r"\textbf{Parameter} & \textbf{Value}",
+                                     label="tab:deflection-summary", num_cols=2)
+    lt_end = make_longtable_footer()
+
     return r"""
 \chapter{Analysis Results}
 
@@ -134,32 +160,27 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \hline
 \endhead
 
-""" + merged_body + r"""
+\hline
+\multicolumn{9}{|r|}{\footnotesize\textit{Continued on next page\dots}} \\
+\hline
+\endfoot
 
 \hline
+\endlastfoot
+
+""" + merged_body + r"""
+
 \end{longtable}
 \endgroup
 
 \vspace{1em}
-\begin{longtable}{|>{\centering\arraybackslash}p{5.2cm}|>{\centering\arraybackslash}p{5.2cm}|>{\centering\arraybackslash}p{5.2cm}|}
-\caption{\textbf{Reactions at Supports}}
+""" + t42_hdr + r"""
+""" + t42_content + r"""
 \hline
-\textbf{Load Case} & \textbf{Left Support (kN)} & \textbf{Right Support (kN)} \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
- & """ + '' + r""" & """ + '' + r""" \\[6pt]
-\hline
-\end{longtable}
+""" + lt_end + r"""
 
 \vspace{1em}
-\begin{longtable}{|L{7cm}|p{8.5cm}|}
-\caption{\textbf{Deflection Summary (Live Load \& Total Load)}}
-\hline
-\textbf{parameter} & \textbf{value} \\
-\hline
+""" + t43_hdr + r"""
 \textnormal{Deflection due to Live Load, $\delta_{LL}$} & """ + _live_str + r""" \\[6pt]
 \hline
 \textnormal{Allowable Live Load Deflection ($\Delta_{allow}$)} & """ + _allow_live_str + r""" \\[6pt]
@@ -172,7 +193,7 @@ A grillage model was used for structural analysis. The deck is idealized as a gr
 \hline
 \textnormal{Total Load Deflection Check Status} & """ + _total_status + r""" \\[6pt]
 \hline
-\end{longtable}
+""" + lt_end + r"""
 
 \vspace{1em}
 \noindent
