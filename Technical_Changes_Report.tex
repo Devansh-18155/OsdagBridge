@@ -1,0 +1,100 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[top=25mm,bottom=28mm,left=20mm,right=20mm,footskip=18mm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,longtable,array,multirow,makecell}
+\usepackage{xcolor,colortbl}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+\definecolor{osdaggreen}{HTML}{91B014}
+\definecolor{osdagdark}{HTML}{556B2F}
+\definecolor{passcolor}{HTML}{2E7D32}
+\definecolor{failcolor}{HTML}{D32F2F}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=osdagdark,
+    urlcolor=osdagdark,
+    citecolor=osdagdark
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textbf{OsdagBridge} --- LaTeX Report Generator Refactoring}
+\fancyhead[R]{\small\color{gray}Technical Report}
+\fancyfoot[C]{\small Page \thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+\renewcommand{\footrulewidth}{0.5pt}
+
+\title{\vspace{-1.5em}\LARGE\textbf{\textcolor{osdagdark}{OsdagBridge: LaTeX Report Generator}}\\\Large\textbf{Refactoring \& Technical Enhancements Report}}
+\author{\textbf{Devansh Patel} \\ FOSSEE / IIT Bombay Internship Assessment}
+\date{November 2026}
+
+\begin{document}
+\maketitle
+\thispagestyle{fancy}
+
+\hrule
+\vspace{1.2em}
+
+\section{Executive Summary}
+This technical report details the refactoring, layout stabilization, and data visualization enhancements implemented in the OsdagBridge design calculation report generation subsystem (\texttt{src/osdagbridge/core/reports/}).
+
+All 6 core requirements from the project specification have been resolved:
+\begin{enumerate}
+    \item \textbf{100\% Repeating Table Headers}: Converted all 55 report tables to standard \texttt{longtable} environments with synchronized \texttt{\textbackslash endfirsthead}, \texttt{\textbackslash endhead}, and continuation footers.
+    \item \textbf{Footer Overlap Elimination}: Resolved margin collisions by establishing centralized geometry (\texttt{bottom=28mm}, \texttt{footskip=18mm}) and applying \texttt{\textbackslash\textbackslash*[6pt]} break protection across all multirow girder check tables.
+    \item \textbf{Separated Live Load Tables}: Refactored Chapter 3 into distinct Vehicular Live Load (Table 3.3) and Footpath Live Load (Table 3.4) tables, implemented multi-column braking load subheaders, and corrected the IRC 6:2017 Cl. 211.2 braking force calculation (.8\text{ kN}$).
+    \item \textbf{Utilization Ratio (UR) Summary Chart}: Programmatically generated and embedded a 300-DPI bar chart in Section 5.5 displaying member-wise Demand/Capacity ratios with a red dashed allowable threshold line at  = 1.0$.
+    \item \textbf{Material Quantity Charts}: Programmatically generated and embedded Chapter 7 visualizations: a component-wise Structural Steel tonnage breakdown chart and a comparative Concrete Volume vs.\ Rebar Weight chart.
+    \item \textbf{Centralized Style System}: Established \texttt{styles.py} as the single source of truth for all geometry, color palettes, and table formatting parameters.
+\end{enumerate}
+
+\section{Centralized Style \& Layout System (\texttt{styles.py})}
+A dedicated module \texttt{src/osdagbridge/core/reports/styles.py} was architected to serve as the single source of truth:
+\begin{itemize}
+    \item \textbf{Color Tokens}: Brand-aligned Osdag green (\texttt{\#91B014}, \texttt{\#556B2F}) and semantic status colors (Pass \texttt{\#2E7D32}, Fail \texttt{\#D32F2F}).
+    \item \textbf{Page Geometry}: \texttt{top=25mm}, \texttt{bottom=28mm}, \texttt{left=20mm}, \texttt{right=20mm}, \texttt{footskip=18mm}.
+    \item \textbf{Table Spacing Tokens}: \texttt{\textbackslash tabcolsep=5pt}, \texttt{\textbackslash arraystretch=1.15}, \texttt{\textbackslash extrarowheight=1.5pt}.
+    \item \textbf{LongTable Generators}: \texttt{make\_longtable\_header()}, \texttt{make\_longtable\_footer()}, and \texttt{lt\_block()} generating robust repeating headers across all pages.
+    \item \textbf{Standard Preamble}: Unified \texttt{generate\_preamble()} ensuring identical packages across all modules.
+\end{itemize}
+
+\section{Programmatic Visualization Engine (\texttt{chart_generator.py})}
+Built with Matplotlib utilizing the headless \texttt{Agg} backend for standalone server and desktop execution:
+\begin{itemize}
+    \item \textbf{UR Summary Chart}: Dynamically extracts peak DCR values for Plate Girders, Concrete Deck Slab, Cross Bracing, and End Diaphragms. Plots labeled bars with green/red status annotations and a horizontal red dashed threshold line at  = 1.0$.
+    \item \textbf{Structural Steel Tonnage}: Horizontal bar chart illustrating component-wise weights (webs, flanges, stiffeners, bracing) with labeled MT and percentages.
+    \item \textbf{Concrete Volume vs.\ Rebar Weight}: Categorized comparison illustrating total concrete volume ($\text{m}^3$) versus reinforcement steel ($\text{MT}$).
+\end{itemize}
+
+\section{Modified Files Summary}
+\begin{center}
+\small
+\begin{tabular}{|l|l|p{7.5cm}|}
+\hline
+\textbf{File} & \textbf{Status} & \textbf{Key Modifications} \\
+\hline
+\texttt{styles.py} & New & Centralized tokens, geometry, table constructors. \\
+\texttt{chart\_generator.py} & New & Programmatic 300-DPI Matplotlib figure generators. \\
+\texttt{report\_generator.py} & Modified & Integrated preamble and dynamic chart pipeline. \\
+\texttt{chap2.py} & Modified & Converted 8 input tables to LongTable with repeating headers. \\
+\texttt{chap3.py} & Modified & Separated vehicle vs.\ footpath loads; multi-column braking header; fixed IRC 6 calculation. \\
+\texttt{chap4.py} & Modified & LongTable conversion for Tables 4.1, 4.2, and 4.3; bound reaction forces. \\
+\texttt{chap5.py} & Modified & Multirow line-break protection (\texttt{\textbackslash\textbackslash*[6pt]}); raw strings; embedded Section 5.5 UR chart. \\
+\texttt{chap7.py} & Modified & LongTable BOM; embedded steel tonnage and concrete/rebar charts. \\
+\texttt{chap8.py} & Modified & LongTable conversion for IRC and IS code lists. \\
+\texttt{irc6\_2017.py} & Modified & Fixed \texttt{UnboundLocalError} when lanes $\le 2$ and ton conversion. \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{Deliverables Verification}
+\begin{itemize}
+    \item \textbf{Report\_Before.pdf} (Baseline, 401.5 KB): Demonstrates previous shortcomings (missing headers on 47/49 tables, footer overlap, no charts).
+    \item \textbf{Report\_After.pdf} (Enhanced, 690.4 KB): Full compliance across all 55 tables, zero footer overlap, and 3 high-DPI engineering charts.
+    \item \textbf{Git Repository}: Pushed to \texttt{https://github.com/Devansh-18155/OsdagBridge} (Branch: \texttt{dev}).
+\end{itemize}
+
+\end{document}
